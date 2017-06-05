@@ -84,21 +84,22 @@ evaluation([_,_,_],0).
 
 % the evaluation tests the possibilities in every direction
 evaluation([X1,X2,X3,X4,X5,X6,X7,X8,X9],Value) :-
-    evaluation([X1,X2,X3],V1),!, % row 1
-    evaluation([X4,X5,X6],V2),!, % row 2
-    evaluation([X7,X8,X9],V3),!, % row 3
-    evaluation([X1,X4,X7],V4),!, % column 1
-    evaluation([X2,X5,X8],V5),!, % column 2
-    evaluation([X3,X6,X9],V6),!, % column 3
-    evaluation([X1,X5,X9],V7),!, % diagonal top-left to bottom-right
-    evaluation([X3,X5,X7],V8),!, % diagonal top-right to bottom-left
-    Value is V1+V2+V3+V4+V5+V6+V7+V8.
+       evaluation([X1,X2,X3],V1),!, % row 1
+       evaluation([X4,X5,X6],V2),!, % row 2
+       evaluation([X7,X8,X9],V3),!, % row 3
+       evaluation([X1,X4,X7],V4),!, % column 1
+       evaluation([X2,X5,X8],V5),!, % column 2
+       evaluation([X3,X6,X9],V6),!, % column 3
+       evaluation([X1,X5,X9],V7),!, % diagonal top-left to bottom-right
+       evaluation([X3,X5,X7],V8),!, % diagonal top-right to bottom-left
+       Value is V1+V2+V3+V4+V5+V6+V7+V8.
 
 test_evaluation :-
     evaluation([0,0,0,0,0,0,0,0,0], 0),
     evaluation([0,0,0,0,x,0,0,0,0], 200),
     evaluation([o,0,0,x,x,0,0,0,0], 200),
     evaluation([o,x,o,o,x,o,x,o,0], 0).
+
 
 
 % 2. Depth limit and integration of evaluation predicate
@@ -128,24 +129,31 @@ test_evaluation :-
 % Problem independent part: Minimax Algorithm
 % ---------------------------------------------------------
 
+% increases X by 1
+increase(X,Out) :- Out is X + 1.
+
+
+% wrapper predicate
+minimax(Pos, BestNextPos, Val) :- minimax(Pos, BestNextPos, Val, 0).
+
+
+minimax(Pos, _, Val, Depth) :- Depth >=3,                  % Pos has no successors
+    utility(Pos, Val).
 
 % minimax(Pos, BestNextPos, Val)
 % Pos is a position, Val is its minimax value.
 % Best move from Pos leads to position BestNextPos.
-minimax(Pos, BestNextPos, Val) :-                     % Pos has successors
+minimax(Pos, BestNextPos, Val, Depth) :-                     % Pos has successors
     findall(NextPos, move(Pos, NextPos), NextPosList),
-    best(NextPosList, BestNextPos, Val), !.
+    best(NextPosList, BestNextPos, Val, Depth), !.
 
-minimax(Pos, _, Val) :-                     % Pos has no successors
-    utility(Pos, Val).
+best([Pos], Pos, Val, Depth) :- increase(Depth,NewD),
+    minimax(Pos, _, Val, NewD), !.
 
-
-best([Pos], Pos, Val) :-
-    minimax(Pos, _, Val), !.
-
-best([Pos1 | PosList], BestPos, BestVal) :-
-    minimax(Pos1, _, Val1),
-    best(PosList, Pos2, Val2),
+best([Pos1 | PosList], BestPos, BestVal, Depth) :-
+    increase(Depth,NewD),
+    minimax(Pos1, _, Val1, NewD),
+    best(PosList, Pos2, Val2, NewD),
     betterOf(Pos1, Val1, Pos2, Val2, BestPos, BestVal).
 
 
@@ -206,6 +214,11 @@ max_to_move([x, _, _]).
 utility([o, win, _], 100).       % Previous player (MAX) has win.
 utility([x, win, _], -100).      % Previous player (MIN) has win.
 utility([_, draw, _], 0).
+
+% extension of the utility function for the use of evaluation while playing
+utility([x, play, Board], Val) :- evaluation(Board, Val).
+% to calculate points of o, we negate the points of x
+utility([o, play, Board], Val) :- evaluation(Board, Val_o), Val is -Val_o.
 
 % winPos(+Player, +Board)
 % True if Player win in Board.
