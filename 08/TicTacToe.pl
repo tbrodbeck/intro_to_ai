@@ -73,6 +73,10 @@
 % 2-pieces possibilities = 100 points
 evaluation([x,x,0], 100).
 evaluation([0,x,x], 100).
+evaluation([x,0,x], 100).
+evaluation([o,o,0], -100).
+evaluation([0,o,o], -100).
+evaluation([o,0,o], -100).
 
 % 1-pieces possibilities = 50 points
 evaluation([x,0,0], 50).
