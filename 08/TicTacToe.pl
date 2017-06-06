@@ -70,18 +70,21 @@
 %   3 fields are there? How many possible placements of x and o that need to
 %   be counted exist per combination?)
 
-% 2-pieces possibilities = 100 points
-evaluation([x,x,0], 100).
-evaluation([0,x,x], 100).
-evaluation([x,0,x], 100).
-evaluation([o,o,0], -100).
-evaluation([0,o,o], -100).
-evaluation([o,0,o], -100).
+% 2-pieces possibilities = +/-50 points
+evaluation([x,x,0], 50).
+evaluation([0,x,x], 50).
+evaluation([x,0,x], 50).
+evaluation([o,o,0], -50).
+evaluation([0,o,o], -50).
+evaluation([o,0,o], -50).
 
-% 1-pieces possibilities = 50 points
-evaluation([x,0,0], 50).
-evaluation([0,x,0], 50).
-evaluation([0,0,x], 50).
+% 1-pieces possibilities = +/-20 points
+evaluation([x,0,0], 20).
+evaluation([0,x,0], 20).
+evaluation([0,0,x], 20).
+evaluation([o,0,0], -20).
+evaluation([0,o,0], -20).
+evaluation([0,0,o], -20).
 
 % none of the above = 0 points
 evaluation([_,_,_],0).
@@ -100,9 +103,9 @@ evaluation([X1,X2,X3,X4,X5,X6,X7,X8,X9],Value) :-
 
 test_evaluation :-
     evaluation([0,0,0,0,0,0,0,0,0], 0),
-    evaluation([0,0,0,0,x,0,0,0,0], 200),
-    evaluation([o,0,0,x,x,0,0,0,0], 200),
-    evaluation([o,x,o,o,x,o,x,o,0], 0).
+    evaluation([0,0,0,0,x,0,0,0,0], 80),
+    evaluation([o,0,0,x,x,0,0,0,0], 70),
+    evaluation([o,x,o,o,x,o,x,o,0], -50).
 
 
 % 2. Depth limit and integration of evaluation predicate
@@ -133,23 +136,34 @@ test_evaluation :-
 % ---------------------------------------------------------
 
 
+% wrapper predicate
+minimax(Pos, BestNextPos, Val) :-
+    minimax(Pos, BestNextPos, Val, 0).
+
 % minimax(Pos, BestNextPos, Val)
 % Pos is a position, Val is its minimax value.
-% Best move from Pos leads to position BestNextPos.
-minimax(Pos, BestNextPos, Val) :-                     % Pos has successors
-    findall(NextPos, move(Pos, NextPos), NextPosList),
-    best(NextPosList, BestNextPos, Val), !.
+% All possible moves from pos are listed in NextPosList
+% Best move from NextPosList leads to position BestNextPos with a certain value Val
 
-minimax(Pos, _, Val) :-                     % Pos has no successors
+
+minimax(Pos, BestNextPos, Val, Depth) :-                    % Pos has successors
+    Depth < 3,
+    findall(NextPos, move(Pos, NextPos), NextPosList),
+    best(NextPosList, BestNextPos, Val, Depth), !.
+
+minimax(Pos, _, Val, Depth) :-                              % Pos has no successors
     utility(Pos, Val).
 
-
-best([Pos], Pos, Val) :-
-    minimax(Pos, _, Val), !.
-
-best([Pos1 | PosList], BestPos, BestVal) :-
-    minimax(Pos1, _, Val1),
-    best(PosList, Pos2, Val2),
+% best pos values of list are calculated
+% if there is only one NextPos left
+best([Pos], Pos, Val, Depth) :-
+    NewD is Depth + 1,
+    minimax(Pos, _, Val, NewD)  !.
+%
+best([Pos1 | PosList], BestPos, BestVal, Depth) :-
+    NewD is Depth + 1,
+    minimax(Pos1, _, Val1, NewD),
+    best(PosList, Pos2, Val2, NewD),
     betterOf(Pos1, Val1, Pos2, Val2, BestPos, BestVal).
 
 
@@ -210,6 +224,11 @@ max_to_move([x, _, _]).
 utility([o, win, _], 100).       % Previous player (MAX) has win.
 utility([x, win, _], -100).      % Previous player (MIN) has win.
 utility([_, draw, _], 0).
+
+% extension of the utility function for the use of evaluation while playing
+utility([x, play, Board], Val) :- evaluation(Board, Val).
+% to calculate points of o, we negate the points of x
+utility([o, play, Board], Val) :- evaluation(Board, Val_o), Val is -Val_o.
 
 % winPos(+Player, +Board)
 % True if Player win in Board.
