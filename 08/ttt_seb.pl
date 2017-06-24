@@ -143,15 +143,18 @@ increase(X,Out) :- Out is X + 1.
 minimax(Pos, BestNextPos, Val) :- minimax(Pos, BestNextPos, Val, 0).
 
 
-minimax(Pos, _, Val, Depth) :- Depth >=3,        % Pos has no successors or Depth-Limit reached
-    utility(Pos, Val).
+
 
 % minimax(Pos, BestNextPos, Val)
 % Pos is a position, Val is its minimax value.
 % Best move from Pos leads to position BestNextPos.
 minimax(Pos, BestNextPos, Val, Depth) :-                     % Pos has successors
+    Depth < 4,
     findall(NextPos, move(Pos, NextPos), NextPosList),
     best(NextPosList, BestNextPos, Val, Depth), !.
+
+minimax(Pos, _, Val, Depth) :-         % Pos has no successors or Depth-Limit reached
+        utility(Pos, Val).
 
 best([Pos], Pos, Val, Depth) :- increase(Depth,NewD),
     minimax(Pos, _, Val, NewD), !.
