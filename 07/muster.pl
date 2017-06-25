@@ -42,53 +42,59 @@ start(1,state(3,3,left)).
 % state transisions
 %-----------------------------------------------------------------------
 
-% the amount of missionaries/cannibals
-n(3).
+allowed(state(CannLeft,0, _Boat)) :- % no missionaries on the left: always ok
+CannLeft >= 0,
+CannLeft =< 3.
+allowed(state(CannLeft,3, _Boat)) :- % no missionaries on the right: always ok
+CannLeft >= 0,
+CannLeft =< 3.
+allowed(state(CannLeft,MissLeft, _Boat)) :- % check in detail
+CannLeft >= 0,
+CannLeft =< 3,
+MissLeft >= 1,
+MissLeft =< 2,
+CannLeft =< MissLeft, % no cannibal overwheight on the left
+3-CannLeft =< 3-MissLeft. % no cannibal overwheight on the right
+
+% 1 or 2 missionaries row from left to right
+transition(state(CannLeft, MissLeft, left), state(CannLeft, MissLeftNew, right)) :-
+member(Num, [1,2]),
+MissLeftNew is MissLeft - Num.
+
+% 1 or 2 missionaries row from right to left
+transition(state(CannLeft, MissLeft, right), state(CannLeft, MissLeftNew, left)) :-
+member(Num, [1,2]),
+MissLeftNew is MissLeft + Num.
+
+% 1 or 2 cannibals row from left to right
+transition(state(CannLeft, MissLeft, left), state(CannLeftNew, MissLeft, right)) :-
+member(Num, [1,2]),
+CannLeftNew is CannLeft - Num.
+
+% 1 or 2 cannibals row from right to left
+transition(state(CannLeft, MissLeft, right), state(CannLeftNew, MissLeft, left)) :-
+member(Num, [1,2]),
+CannLeftNew is CannLeft + Num.
+
+% 1 cannibal and 1 missionary row from left to right
+transition(state(CannLeft, MissLeft, left), state(CannLeftNew, MissLeftNew, right)) :-
+MissLeftNew is MissLeft - 1,
+CannLeftNew is CannLeft - 1.
+
+% 1 cannibal and 1 missionary row from right to left
+transition(state(CannLeft, MissLeft, right), state(CannLeftNew, MissLeftNew, left)) :-
+MissLeftNew is MissLeft + 1,
+CannLeftNew is CannLeft + 1.
 
 % find all allowed successor states
-transitions(State, States) :- findall(X, isValid(State,X), States).
-
-% wrapper-function for state-transitions
-isValid(state(X1,Y1,B1),state(X2,Y2,B2)) :- move(X1,Y1,X2,Y2,B1,B2),checkState(X2,Y2).
-
-% rules for possible moves:
-% take 1 missionary
-% take 2 missionaries
-% take 1 cannibal on the boat and move to other site
-% take 2 cannibals
-% take 1 cannibal and 1 missionary
-% the amount of each group cannot be less than 0 or greater than N
-% the amount of missionaries cannot be smaller than of the cannibals
-
-% possible moves from left to right
-% idea: the new state has the amount of missionaries/cannibals that result from
-% the rules mentioned above (with check of boundaries, e.g. amount left > 0 ...)
-move(X1,Y1,X2,Y2,left,right) :- X2 is X1-1, X2 >= 0, Y2 = Y1.
-move(X1,Y1,X2,Y2,left,right) :- X2 is X1-2, X2 >= 0, Y2 = Y1.
-move(X1,Y1,X2,Y2,left,right) :- Y2 is Y1-1, Y2 >= 0, X2 = X1.
-move(X1,Y1,X2,Y2,left,right) :- Y2 is Y1-2, Y2 >= 0, X2 = X1.
-move(X1,Y1,X2,Y2,left,right) :- X2 is X1-1, Y2 is Y1-1, X2 >= 0, Y2 >= 0.
-
-% possible moves from right to left
-move(X1,Y1,X2,Y2,right,left) :- X2 is X1+1, n(N), X2 =< N, Y2 = Y1.
-move(X1,Y1,X2,Y2,right,left) :- X2 is X1+2, n(N), X2 =< N, Y2 = Y1.
-move(X1,Y1,X2,Y2,right,left) :- Y2 is Y1+1, n(N), Y2 =< N, X2 = X1.
-move(X1,Y1,X2,Y2,right,left) :- Y2 is Y1+2, n(N), Y2 =< N, X2 = X1.
-move(X1,Y1,X2,Y2,right,left) :- X2 is X1+1, n(N), Y2 is Y1+1, X2 =< N, Y2 =< N.
-
-% check if the state is a valid state (no missionaries outnumbered)
-checkState(X,Y) :- X >= Y.
-checkState(X,_) :- X = 0.
+transitions(State, States) :-
+findall(NewState, (transition(State,NewState), allowed(NewState)), States).
 
 %------------------------------------------------------------
 % the goal state
 %------------------------------------------------------------
 
-end(state(0,0,right)).
-
-% ############################################################################
-% NO NEED TO CHANGE BELOW THIS LINE
-% ############################################################################
+end(state(0,0,_)).
 
 % ---------------------------------------------------
 % expanding paths
